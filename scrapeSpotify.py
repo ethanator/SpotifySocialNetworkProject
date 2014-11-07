@@ -29,7 +29,9 @@ SPOTIFY = 'http://play.spotify.com/'
 SPOTIFY_USER = 'http://play.spotify.com/user'
 
 # Login to Spotify Web Player
-driver = webdriver.Chrome()					
+options = webdriver.ChromeOptions()
+options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+driver = webdriver.Chrome(chrome_options=options)					
 driver.get(SPOTIFY)
 try:
   login = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'has-account')))
@@ -53,5 +55,4 @@ except:
 print 'Waiting for Spotify to load ...'
 time.sleep(10)
 driver.switch_to_window(driver.window_handles[0])
-print 'Fuck'
-print driver.current_url
+driver.get(SPOTIFY_USER)
