@@ -8,6 +8,9 @@
 # ===================================================
 # Version 0.9.1 				  Posted Nov  7, 2014
 #  - Can switch to the logged-in Spotify browse page
+#  - Eliminate the unsupported command-line flag
+#  - Can switch to the user profile page
+#  - Can get iframes
 # ___________________________________________________
 # Version 0.9                     Posted Nov  5, 2014
 #  - Can log in Spotify
@@ -15,6 +18,7 @@
 
 from bs4 import BeautifulSoup
 import getpass
+import re
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -56,3 +60,7 @@ print 'Waiting for Spotify to load ...'
 time.sleep(10)
 driver.switch_to_window(driver.window_handles[0])
 driver.get(SPOTIFY_USER)
+print 'Waiting for the user profile to load ...'
+time.sleep(10)
+soup = BeautifulSoup(driver.page_source)
+print soup.findAll('iframe', id=re.compile('^user'))
