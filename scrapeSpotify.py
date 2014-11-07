@@ -3,6 +3,10 @@
 #   Author: Yuxuan "Ethan" Chen
 #     Date: November 7, 2014
 #  Version: 0.9.1
+#
+# To-do:
+#  - Add action to scroll down the page so that all artists or playlists can be loaded
+#
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
@@ -13,6 +17,8 @@
 #  - Can get iframes
 #  - Can scrape user name
 #  - Can click on the tabs on the user profile
+#  - Can get recently played artists
+#  - Can get public playlists
 # ___________________________________________________
 # Version 0.9                     Posted Nov  5, 2014
 #  - Can log in Spotify
@@ -79,7 +85,23 @@ for iframe in iframes:
 driver.switch_to_default_content()
 driver.switch_to.frame(user_iframe)
 
-# Scrape the user name and click on the tabs
+# Scrape the user name
 print driver.find_element_by_xpath("//h1[@class='h-title']").text
+
+# Scrape the recently played artists
 recent_artists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='recently-played-artists']")
 recent_artists_tab.click()
+print 'Waiting for the recently played artists list to load ...'
+time.sleep(10)
+recent_artists = driver.find_elements_by_xpath("//section[@class='recently-played-artists']/descendant::a[@class='mo-title']")
+for artist in recent_artists:
+	print artist.get_attribute('title')
+
+# Scrape the public playlists
+public_playlists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='public-playlists']")
+public_playlists_tab.click()
+print 'Waiting for the public playlists to load ...'
+time.sleep(10)
+public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
+for playlist in public_playlists:
+	print playlist.get_attribute('title')
