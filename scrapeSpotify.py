@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # Scrape the Spotify Web Player and get the social network for a user.
 #   Author: Yuxuan "Ethan" Chen
-#     Date: November 5, 2014
-#  Version: 0.9
+#     Date: November 7, 2014
+#  Version: 0.9.1
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
+# Version 0.9.1 				  Posted Nov  7, 2014
+#  - Can switch to the logged-in Spotify browse page
+# ___________________________________________________
 # Version 0.9                     Posted Nov  5, 2014
-#  - 
+#  - Can log in Spotify
 # ===================================================
 
 from bs4 import BeautifulSoup
@@ -19,6 +22,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
+import time
 import unicodedata
 
 SPOTIFY = 'http://play.spotify.com/'
@@ -45,6 +49,9 @@ try:
   email_blank.submit()
 except:
   print 'Error!'
+
 print 'Waiting for Spotify to load ...'
-WebDriverWait(driver, 10)
-driver.get(SPOTIFY_USER)
+time.sleep(10)
+driver.switch_to_window(driver.window_handles[0])
+print 'Fuck'
+print driver.current_url
