@@ -1,16 +1,22 @@
 #!/usr/bin/env python
 # Scrape the Spotify Web Player and get the social network for a user.
 #   Author: Yuxuan "Ethan" Chen
-#     Date: November 7, 2014
-#  Version: 0.9.1
+#     Date: November 8, 2014
+#  Version: 0.9.2
 #
 # To-do:
 #  - Add action to scroll down the page so that all artists or playlists can be loaded
 #  - Better logic to wait for elements to load
+#  - Use headless browser to hide the actual browser
+#  - Better input for email
+#  - Clean code according to Google Python style guide
 #
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
+# Version 0.9.2      			  Posted Nov  8, 2014
+#  - Can scroll to the bottom
+# ___________________________________________________
 # Version 0.9.1 				  Posted Nov  7, 2014
 #  - Can switch to the logged-in Spotify browse page
 #  - Eliminate the unsupported command-line flag
@@ -77,7 +83,7 @@ time.sleep(10)
 driver.switch_to_window(driver.window_handles[0])
 driver.get(SPOTIFY_USER)
 print 'Waiting for the user profile to load ...'
-time.sleep(10)
+time.sleep(20)
 
 # Locate the user iframe on the page
 iframes = driver.find_elements_by_xpath("//iframe")
@@ -109,4 +115,26 @@ time.sleep(20)
 public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
 for playlist in public_playlists:
 	print playlist.get_attribute('title')
-driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+# Check scroll position
+js_client_height = 'return document.documentElement.clientHeight;'
+scroll_position_script = """
+	var pageY;
+    if (typeof(window.pageYOffset) == 'number') {
+        pageY = window.pageYOffset;
+    } else {
+        pageY = document.documentElement.scrollTop;
+    }
+    return pageY;
+"""
+browser_height = driver.execute_script(js_client_height)
+print 'Before scrolling, the browser height is: ', str(browser_height)
+yOffset = driver.execute_script(scroll_position_script)
+print 'And the scroll position is: ', str(yOffset)
+for i in xrange(6):
+	driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+	time.sleep(5)
+	browser_height = driver.execute_script(js_client_height)
+	print 'After scrolling, the browser height is: ', str(browser_height)
+	yOffset = driver.execute_script(scroll_position_script)
+	print 'And the scroll position is: ', str(yOffset)
