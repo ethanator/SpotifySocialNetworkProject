@@ -6,6 +6,7 @@
 #
 # To-do:
 #  - Add action to scroll down the page so that all artists or playlists can be loaded
+#  - Better logic to wait for elements to load
 #
 # ===================================================
 #                   VERSION HISTORY
@@ -49,14 +50,17 @@ driver = webdriver.Chrome(chrome_options=options)
 driver.get(SPOTIFY)
 
 # Click the "Already have an account" link
-login = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'has-account')))
+time.sleep(10)
+login = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, 'has-account')))
 login.click()
 
 # Type in credentials at the command line to log in Spotiy with Facebook
 print 'Spotify Social Network Project'
 print '=============================='
-fb_login = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'fb-login-btn')))
+time.sleep(10)
+fb_login = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'fb-login-btn')))
 fb_login.click()
+time.sleep(10)
 driver.switch_to_window(driver.window_handles[1])
 print 'Logging in via Facebook ...'
 email_blank = driver.find_element_by_id('email')
@@ -92,7 +96,7 @@ print driver.find_element_by_xpath("//h1[@class='h-title']").text
 recent_artists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='recently-played-artists']")
 recent_artists_tab.click()
 print 'Waiting for the recently played artists list to load ...'
-time.sleep(10)
+time.sleep(20)
 recent_artists = driver.find_elements_by_xpath("//section[@class='recently-played-artists']/descendant::a[@class='mo-title']")
 for artist in recent_artists:
 	print artist.get_attribute('title')
@@ -101,7 +105,8 @@ for artist in recent_artists:
 public_playlists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='public-playlists']")
 public_playlists_tab.click()
 print 'Waiting for the public playlists to load ...'
-time.sleep(10)
+time.sleep(20)
 public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
 for playlist in public_playlists:
 	print playlist.get_attribute('title')
+driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
