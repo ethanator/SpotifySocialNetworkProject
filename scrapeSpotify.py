@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # Scrape the Spotify Web Player and get the social network for a user.
 #   Author: Yuxuan "Ethan" Chen
-#     Date: November 8, 2014
-#  Version: 0.9.2
+#     Date: November 10, 2014
+#  Version: 0.9.3
 #
 # To-do:
 #  - Add action to scroll down the page so that all artists or playlists can be loaded
@@ -10,10 +10,14 @@
 #  - Use headless browser to hide the actual browser
 #  - Better input for email
 #  - Clean code according to Google Python style guide
+#  - Some people don't have recently played artists list
 #
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
+# Version 0.9.3 				  Posted Nov 10, 2014
+#  - Can load all the playlists and scrape them.
+# ___________________________________________________
 # Version 0.9.2      			  Posted Nov  8, 2014
 #  - Can scroll to the bottom
 # ___________________________________________________
@@ -83,7 +87,7 @@ time.sleep(10)
 driver.switch_to_window(driver.window_handles[0])
 driver.get(SPOTIFY_USER)
 print 'Waiting for the user profile to load ...'
-time.sleep(20)
+time.sleep(10)
 
 # Locate the user iframe on the page
 iframes = driver.find_elements_by_xpath("//iframe")
@@ -102,7 +106,7 @@ print driver.find_element_by_xpath("//h1[@class='h-title']").text
 recent_artists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='recently-played-artists']")
 recent_artists_tab.click()
 print 'Waiting for the recently played artists list to load ...'
-time.sleep(20)
+time.sleep(10)
 recent_artists = driver.find_elements_by_xpath("//section[@class='recently-played-artists']/descendant::a[@class='mo-title']")
 for artist in recent_artists:
 	print artist.get_attribute('title')
@@ -111,13 +115,7 @@ for artist in recent_artists:
 public_playlists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='public-playlists']")
 public_playlists_tab.click()
 print 'Waiting for the public playlists to load ...'
-time.sleep(20)
-public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
-for playlist in public_playlists:
-	print playlist.get_attribute('title')
-
-# Check scroll position
-js_client_height = 'return document.documentElement.clientHeight;'
+time.sleep(10)
 scroll_position_script = """
 	var pageY;
     if (typeof(window.pageYOffset) == 'number') {
@@ -127,14 +125,13 @@ scroll_position_script = """
     }
     return pageY;
 """
-browser_height = driver.execute_script(js_client_height)
-print 'Before scrolling, the browser height is: ', str(browser_height)
-yOffset = driver.execute_script(scroll_position_script)
-print 'And the scroll position is: ', str(yOffset)
-for i in xrange(6):
+curr_scroll_pos = driver.execute_script(scroll_position_script)
+while True:
+	prev_scroll_pos = curr_scroll_pos
 	driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
-	time.sleep(5)
-	browser_height = driver.execute_script(js_client_height)
-	print 'After scrolling, the browser height is: ', str(browser_height)
-	yOffset = driver.execute_script(scroll_position_script)
-	print 'And the scroll position is: ', str(yOffset)
+	time.sleep(10)
+	curr_scroll_pos = driver.execute_script(scroll_position_script)
+	if prev_scroll_pos == curr_scroll_pos: break
+public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
+for playlist in public_playlists:
+	print playlist.get_attribute('title')
