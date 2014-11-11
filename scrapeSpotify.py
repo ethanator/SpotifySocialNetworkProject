@@ -16,6 +16,7 @@
 #                   VERSION HISTORY
 # ===================================================
 # Version 0.9.3 				  Posted Nov 10, 2014
+#  - Can scrape the followers.
 #  - Can load all the playlists and scrape them.
 # ___________________________________________________
 # Version 0.9.2      			  Posted Nov  8, 2014
@@ -135,3 +136,13 @@ while True:
 public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
 for playlist in public_playlists:
 	print playlist.get_attribute('title')
+
+# Scrape the followers
+followers_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='followers']")
+followers_tab.click()
+print 'Waiting for the followers to load ...'
+time.sleep(10)
+followers = driver.find_elements_by_xpath("//section[@class='followers']/descendant::a[@class='title']")
+for follower in followers:
+	print follower.get_attribute('title')
+	print follower.get_attribute('href')
