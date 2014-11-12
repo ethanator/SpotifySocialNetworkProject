@@ -57,7 +57,9 @@ SPOTIFY_USER = 'http://play.spotify.com/user'
 # Open a broswer and navigate to the Spotify player
 options = webdriver.ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
-driver = webdriver.Chrome(chrome_options=options)					
+print 'Creating driver'
+driver = webdriver.Chrome(chrome_options=options)
+print 'Created driver'
 driver.get(SPOTIFY)
 
 # Click the "Already have an account" link
