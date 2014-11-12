@@ -143,6 +143,8 @@ followers_tab.click()
 print 'Waiting for the followers to load ...'
 time.sleep(10)
 followers = driver.find_elements_by_xpath("//section[@class='followers']/descendant::a[@class='title']")
+q = []
 for follower in followers:
-	print follower.get_attribute('title')
-	print follower.get_attribute('href')
+	follower_name = follower.get_attribute('title')
+	follower_link = follower.get_attribute('href')
+	q.append((follower_name, follower_link))
