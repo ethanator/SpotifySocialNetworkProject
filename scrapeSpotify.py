@@ -57,7 +57,9 @@ SPOTIFY_USER = 'http://play.spotify.com/user'
 # Open a broswer and navigate to the Spotify player
 options = webdriver.ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
-driver = webdriver.Chrome(chrome_options=options)					
+print 'Creating driver'
+driver = webdriver.Chrome(chrome_options=options)
+print 'Created driver'
 driver.get(SPOTIFY)
 
 # Click the "Already have an account" link
@@ -145,6 +147,11 @@ time.sleep(10)
 followers = driver.find_elements_by_xpath("//section[@class='followers']/descendant::a[@class='title']")
 q = []
 for follower in followers:
+<<<<<<< HEAD
 	follower_name = follower.get_attribute('title')
 	follower_link = follower.get_attribute('href')
 	q.append((follower_name, follower_link))
+=======
+	print follower.get_attribute('title')
+	print follower.get_attribute('href')
+>>>>>>> cbaa0eaf1d180e273b2e7f791ad37a89f64c88df
