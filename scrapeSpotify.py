@@ -36,44 +36,36 @@
 #  - Can log in Spotify
 # ===================================================
 
-from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 import getpass
-import re
-import sys
 import time
-import unicodedata
 
 # Constants
 SPOTIFY = 'http://play.spotify.com/'
 SPOTIFY_USER = 'http://play.spotify.com/user'
 
+print 'Spotify Social Network Project'
+print '=============================='
+
 # Open a broswer and navigate to the Spotify player
+print 'Creating webdriver...'
 options = webdriver.ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
-print 'Creating driver'
 driver = webdriver.Chrome(chrome_options=options)
-print 'Created driver'
+
+print 'Navigating to Spotify...'
 driver.get(SPOTIFY)
 
 # Click the "Already have an account" link
-time.sleep(10)
 login = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, 'has-account')))
 login.click()
 
 # Type in credentials at the command line to log in Spotiy with Facebook
-print 'Spotify Social Network Project'
-print '=============================='
-time.sleep(10)
 fb_login = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'fb-login-btn')))
 fb_login.click()
-time.sleep(10)
 driver.switch_to_window(driver.window_handles[1])
 print 'Logging in via Facebook ...'
 email_blank = driver.find_element_by_id('email')
