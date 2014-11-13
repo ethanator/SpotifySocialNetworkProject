@@ -1,20 +1,31 @@
 #!/usr/bin/env python
 # Scrape the Spotify Web Player and get the social network for a user.
-#   Author: Yuxuan "Ethan" Chen
-#     Date: November 10, 2014
-#  Version: 0.9.3
+#   Authors: Yuxuan "Ethan" Chen, Garrett McGrath
+#     Date: November 12, 2014
+#  Version: 0.9.4
 #
 # To-do:
-#  - Add action to scroll down the page so that all artists or playlists can be loaded
-#  - Better logic to wait for elements to load
-#  - Use headless browser to hide the actual browser
-#  - Better input for email
 #  - Clean code according to Google Python style guide
-#  - Some people don't have recently played artists list
 #
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
+# Version 0.9.4                   Posted Nov 13, 2014
+#  - Removed time.sleep(10) calls, explicit waits now
+#  - Changed scraping to class SpotifyScrape in
+#    anticipation of logging and database storage
+#  - Simplified iframe transitions
+#  - Created continuous queue of profile scrapes
+#  - Can support users with no recent artists
+#  - Can support users with no public playlists
+#  - Scrapes users followings as well as followers
+#  - Can support users without followings
+#  - Improved scrolling capability
+#  - Created the wrapper function 'gather' which
+#    automatically scrolls down and scrapes all
+#    elements in playlists, followers, and following
+#  - Enabled MySQL database storage of results
+# ___________________________________________________
 # Version 0.9.3 				  Posted Nov 10, 2014
 #  - Can scrape the followers.
 #  - Can load all the playlists and scrape them.
@@ -40,110 +51,119 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 import getpass
-import time
+import MySQLdb
+import string
 
-# Constants
-SPOTIFY = 'http://play.spotify.com/'
-SPOTIFY_USER = 'http://play.spotify.com/user'
+class SpotifyScraper:
+    def __init__(self):
+        self.q = []
+        self.q.append('spotify')
+        self.driver = None
 
-print 'Spotify Social Network Project'
-print '=============================='
+    def connect(self):
+        print 'Spotify Social Network Project'
+        print '=============================='
 
-# Open a broswer and navigate to the Spotify player
-print 'Creating webdriver...'
-options = webdriver.ChromeOptions()
-options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
-driver = webdriver.Chrome(chrome_options=options)
+        # Open a broswer and navigate to the Spotify player
+        print 'Creating webdriver ...'
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
+        self.driver = webdriver.Chrome(chrome_options=options)
+        self.driver.implicitly_wait(2)
 
-print 'Navigating to Spotify...'
-driver.get(SPOTIFY)
+        print 'Navigating to Spotify ...'
+        self.driver.get('http://play.spotify.com/')
 
-# Click the "Already have an account" link
-login = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, 'has-account')))
-login.click()
+        # Click the "Already have an account" link
+        login = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, 'has-account')))
+        login.click()
 
-# Type in credentials at the command line to log in Spotiy with Facebook
-fb_login = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'fb-login-btn')))
-fb_login.click()
-driver.switch_to_window(driver.window_handles[1])
-print 'Logging in via Facebook ...'
-email_blank = driver.find_element_by_id('email')
-pass_blank  = driver.find_element_by_id('pass')
-input_email = raw_input('Email or Phone: ')
-input_pass  = getpass.getpass('      Password: ')
-email_blank.send_keys(input_email)
-pass_blank.send_keys(input_pass)
-email_blank.submit()
+        # Type in credentials at the command line to log in Spotiy with Facebook
+        fb_login = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, 'fb-login-btn')))
+        fb_login.click()
+        self.driver.switch_to_window(self.driver.window_handles[1])
+        print 'Logging in via Facebook ...'
+        email_blank = self.driver.find_element_by_id('email')
+        pass_blank  = self.driver.find_element_by_id('pass')
+        input_email = raw_input('Email or Phone: ')
+        input_pass  = getpass.getpass('      Password: ')
+        email_blank.send_keys(input_email)
+        pass_blank.send_keys(input_pass)
+        email_blank.submit()
 
-# Navigate from the browse page to the user page
-print 'Waiting for Spotify to load ...'
-time.sleep(10)
-driver.switch_to_window(driver.window_handles[0])
-driver.get(SPOTIFY_USER)
-print 'Waiting for the user profile to load ...'
-time.sleep(10)
+        # Navigate from the browse page to the user page
+        print 'Waiting for Spotify to load ...'
+        self.driver.switch_to_window(self.driver.window_handles[0])
+        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//li[@class='item-profile etched-top has-extra-bottom-row show show show show']")))
+        print 'Connection complete ...'
+        print '=============================='
 
-# Locate the user iframe on the page
-iframes = driver.find_elements_by_xpath("//iframe")
-user_iframe = None
-for iframe in iframes:
-	if 'user-app-spotify' in iframe.get_attribute('id'):
-		user_iframe = iframe
-		break
-driver.switch_to_default_content()
-driver.switch_to.frame(user_iframe)
+    def scrape(self):
+        # Load user page
+        user = self.q.pop(0)
+        self.driver.get('http://play.spotify.com/user/' + user)
+        WebDriverWait(self.driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@id, 'user')]")))
+        # Scrape user name
+        WebDriverWait(self.driver, 10).until(lambda x: self.driver.find_element_by_xpath("//h1[@class='h-title']").text)
+        name = self.driver.find_element_by_xpath("//h1[@class='h-title']").text
+        print name
+        self.store('users', ['id', 'name'], [user, name])
+        # Scrape recently played artists
+        artists = self.gather('recently-played-artists')
+        for artist in artists:
+            self.store('recent_artists', ['id', 'user'], [artist, user])
+        # Scrape public playlists
+        playlists = self.gather('public-playlists')
+        for playlist in playlists:
+            self.store('playlists', ['id', 'user'], [playlist, user])
+        # Scrape following
+        following = self.gather('following')
+        for follow in following:
+            self.store('follows', ['outgoing', 'incoming'], [user, follow])
+            self.q.append(follow)
+        # Scrape followers
+        followers = self.gather('followers')
+        for follower in followers:
+            self.store('follows', ['outgoing', 'incoming'], [follower, user])
+            self.q.append(follower)
 
-# Scrape the user name
-print driver.find_element_by_xpath("//h1[@class='h-title']").text
+    def gather(self, type):
+        try:
+            print 'Scraping ' + type + ' ...'
+            tab = self.driver.find_element_by_xpath("//li[@data-navbar-item-id='" + type + "']")
+            tab.click()
+            if len(self.driver.find_elements_by_xpath("//section[@class='" + type + "']/descendant::a[contains(@class, 'title')]")) > 20:
+                while True:
+                    self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+                    try:
+                        WebDriverWait(self.driver, 2).until(lambda x: self.driver.execute_script('return document.body.scrollHeight != document.body.scrollTop + window.innerHeight;'))
+                    except:
+                        break
+            self.driver.execute_script('window.scrollTo(0, 0);')
+            items = self.driver.find_elements_by_xpath("//section[@class='" + type + "']/descendant::a[contains(@class, 'title')]")
+            for i in xrange(len(items)):
+                items[i] = items[i].get_attribute('href').split('/')[-1]
+            return items
+        except NoSuchElementException:
+            print 'No ' + type
+            return []
 
-# Scrape the recently played artists
-recent_artists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='recently-played-artists']")
-recent_artists_tab.click()
-print 'Waiting for the recently played artists list to load ...'
-time.sleep(10)
-recent_artists = driver.find_elements_by_xpath("//section[@class='recently-played-artists']/descendant::a[@class='mo-title']")
-for artist in recent_artists:
-	print artist.get_attribute('title')
+    def store(self, table, fields, values):
+        db = MySQLdb.connect("localhost", "ubuntu", "", "spotify")
+        cur = self.db.cursor()
+        cur.execute('INSERT INTO ' + table + "(" + string.join(fields, ", ") + ") VALUES ('" + string.join(values, "', '") + "');")
+        cur.close()
+        db.commit()
+        db.close()
 
-# Scrape the public playlists
-public_playlists_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='public-playlists']")
-public_playlists_tab.click()
-print 'Waiting for the public playlists to load ...'
-time.sleep(10)
-scroll_position_script = """
-	var pageY;
-    if (typeof(window.pageYOffset) == 'number') {
-        pageY = window.pageYOffset;
-    } else {
-        pageY = document.documentElement.scrollTop;
-    }
-    return pageY;
-"""
-curr_scroll_pos = driver.execute_script(scroll_position_script)
-while True:
-	prev_scroll_pos = curr_scroll_pos
-	driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
-	time.sleep(10)
-	curr_scroll_pos = driver.execute_script(scroll_position_script)
-	if prev_scroll_pos == curr_scroll_pos: break
-public_playlists = driver.find_elements_by_xpath("//section[@class='public-playlists']/descendant::a[@class='mo-title']")
-for playlist in public_playlists:
-	print playlist.get_attribute('title')
+    def close(self):
+        self.driver.close()
 
-# Scrape the followers
-followers_tab = driver.find_element_by_xpath("//li[@data-navbar-item-id='followers']")
-followers_tab.click()
-print 'Waiting for the followers to load ...'
-time.sleep(10)
-followers = driver.find_elements_by_xpath("//section[@class='followers']/descendant::a[@class='title']")
-q = []
-for follower in followers:
-<<<<<<< HEAD
-	follower_name = follower.get_attribute('title')
-	follower_link = follower.get_attribute('href')
-	q.append((follower_name, follower_link))
-=======
-	print follower.get_attribute('title')
-	print follower.get_attribute('href')
->>>>>>> cbaa0eaf1d180e273b2e7f791ad37a89f64c88df
+if __name__ == '__main__':
+    scraper = SpotifyScraper()
+    scraper.connect()
+    while scraper.q:
+        scraper.scrape()
+    scraper.close()
