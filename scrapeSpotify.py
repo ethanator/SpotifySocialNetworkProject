@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-# Scrape the Spotify Web Player and get the social network for a user.
-#   Authors: Yuxuan "Ethan" Chen, Garrett McGrath
+# Scrape the Spotify Web Player for research.
+#   Author: Yuxuan "Ethan" Chen
 #     Date: April 30, 2014
 #  Version: 0.9.5
-#
-# To-do:
-#  - Clean code according to Google Python style guide
 #
 # ===================================================
 #                   VERSION HISTORY
@@ -50,19 +47,23 @@
 #  - Can log in Spotify
 # ===================================================
 
+from pyvirtualdisplay import Display
 from selenium import webdriver
+from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 import getpass
 import string
+import time
 
 class SpotifyScraper:
     def __init__(self):
         self.q = []
         self.q.append('spotify')
         self.driver = None
+	self.display = Display(visible=0, size=(800, 600))
         #self.db = MySQLdb.connect("localhost", "ubuntu", "", "spotify")
 
     def connect(self):
@@ -74,6 +75,7 @@ class SpotifyScraper:
         options = webdriver.ChromeOptions()
         options.add_experimental_option("excludeSwitches", 
 		["ignore-certificate-errors"]) # Suppress a command-line flag
+	self.display.start()
         self.driver = webdriver.Chrome(chrome_options=options, 
 		service_args=["--verbose", "--log-path=webdriver.log"])
         self.driver.implicitly_wait(2)
@@ -82,9 +84,10 @@ class SpotifyScraper:
         self.driver.get('http://play.spotify.com/')
 
         # Click the "Already have an account" link
+	action_chains = ActionChains(self.driver)
         login = WebDriverWait(self.driver, 10).until(
 		EC.element_to_be_clickable((By.ID, 'has-account')))
-        login.click()
+	action_chains.double_click(login).perform()
 
         # Type in credentials at the command line to log in Spotiy with Facebook
         fb_login = WebDriverWait(self.driver, 10).until(
@@ -167,7 +170,8 @@ class SpotifyScraper:
 
     def close(self):
         self.driver.close()
-        self.db.close()
+	self.display.stop()
+        # self.db.close()
 
 if __name__ == '__main__':
     scraper = SpotifyScraper()
