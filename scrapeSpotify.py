@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # Scrape the Spotify Web Player and get the social network for a user.
 #   Authors: Yuxuan "Ethan" Chen, Garrett McGrath
-#     Date: November 12, 2014
-#  Version: 0.9.4
+#     Date: April 30, 2014
+#  Version: 0.9.5
 #
 # To-do:
 #  - Clean code according to Google Python style guide
@@ -10,6 +10,9 @@
 # ===================================================
 #                   VERSION HISTORY
 # ===================================================
+# Version 0.9.5                   Posted Apr 30, 2014
+#
+# ___________________________________________________
 # Version 0.9.4                   Posted Nov 13, 2014
 #  - Removed time.sleep(10) calls, explicit waits now
 #  - Changed scraping to class SpotifyScrape in
@@ -26,14 +29,14 @@
 #    elements in playlists, followers, and following
 #  - Enabled MySQL database storage of results
 # ___________________________________________________
-# Version 0.9.3 				  Posted Nov 10, 2014
+# Version 0.9.3 		  Posted Nov 10, 2014
 #  - Can scrape the followers.
 #  - Can load all the playlists and scrape them.
 # ___________________________________________________
-# Version 0.9.2      			  Posted Nov  8, 2014
+# Version 0.9.2      		  Posted Nov  8, 2014
 #  - Can scroll to the bottom
 # ___________________________________________________
-# Version 0.9.1 				  Posted Nov  7, 2014
+# Version 0.9.1 		  Posted Nov  7, 2014
 #  - Can switch to the logged-in Spotify browse page
 #  - Eliminate the unsupported command-line flag
 #  - Can switch to the user profile page
@@ -53,7 +56,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 import getpass
-import MySQLdb
 import string
 
 class SpotifyScraper:
@@ -61,6 +63,7 @@ class SpotifyScraper:
         self.q = []
         self.q.append('spotify')
         self.driver = None
+        #self.db = MySQLdb.connect("localhost", "ubuntu", "", "spotify")
 
     def connect(self):
         print 'Spotify Social Network Project'
@@ -69,19 +72,23 @@ class SpotifyScraper:
         # Open a broswer and navigate to the Spotify player
         print 'Creating webdriver ...'
         options = webdriver.ChromeOptions()
-        options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"]) # Suppress a command-line flag
-        self.driver = webdriver.Chrome(chrome_options=options)
+        options.add_experimental_option("excludeSwitches", 
+		["ignore-certificate-errors"]) # Suppress a command-line flag
+        self.driver = webdriver.Chrome(chrome_options=options, 
+		service_args=["--verbose", "--log-path=webdriver.log"])
         self.driver.implicitly_wait(2)
 
         print 'Navigating to Spotify ...'
         self.driver.get('http://play.spotify.com/')
 
         # Click the "Already have an account" link
-        login = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, 'has-account')))
+        login = WebDriverWait(self.driver, 10).until(
+		EC.element_to_be_clickable((By.ID, 'has-account')))
         login.click()
 
         # Type in credentials at the command line to log in Spotiy with Facebook
-        fb_login = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, 'fb-login-btn')))
+        fb_login = WebDriverWait(self.driver, 10).until(
+		EC.element_to_be_clickable((By.ID, 'fb-login-btn')))
         fb_login.click()
         self.driver.switch_to_window(self.driver.window_handles[1])
         print 'Logging in via Facebook ...'
@@ -103,13 +110,14 @@ class SpotifyScraper:
     def scrape(self):
         # Load user page
         user = self.q.pop(0)
+        print 'Scraping user: ' + user
         self.driver.get('http://play.spotify.com/user/' + user)
-        WebDriverWait(self.driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@id, 'user')]")))
+        WebDriverWait(self.driver, 20).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@id, 'user')]")))
         # Scrape user name
-        WebDriverWait(self.driver, 10).until(lambda x: self.driver.find_element_by_xpath("//h1[@class='h-title']").text)
+        print 'Scraping user name ...'
+        WebDriverWait(self.driver, 20).until(lambda x: self.driver.find_element_by_xpath("//h1[@class='h-title']").text)
         name = self.driver.find_element_by_xpath("//h1[@class='h-title']").text
         print name
-        self.store('users', ['id', 'name'], [user, name])
         # Scrape recently played artists
         artists = self.gather('recently-played-artists')
         for artist in artists:
@@ -128,6 +136,7 @@ class SpotifyScraper:
         for follower in followers:
             self.store('follows', ['outgoing', 'incoming'], [follower, user])
             self.q.append(follower)
+        #self.db.commit()
 
     def gather(self, type):
         try:
@@ -151,15 +160,14 @@ class SpotifyScraper:
             return []
 
     def store(self, table, fields, values):
-        db = MySQLdb.connect("localhost", "ubuntu", "", "spotify")
-        cur = self.db.cursor()
-        cur.execute('INSERT INTO ' + table + "(" + string.join(fields, ", ") + ") VALUES ('" + string.join(values, "', '") + "');")
-        cur.close()
-        db.commit()
-        db.close()
+        print values
+        #cur = self.db.cursor()
+        #cur.execute('INSERT INTO ' + table + "(" + string.join(fields, ", ") + ") VALUES ('" + string.join(values, "', '") + "');")
+        #cur.close()
 
     def close(self):
         self.driver.close()
+        self.db.close()
 
 if __name__ == '__main__':
     scraper = SpotifyScraper()
